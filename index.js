@@ -3,6 +3,8 @@ const { PORT } = require("./config.json");
 const SIO = require("./sio");
 const http = require("http");
 
+const WorldObjectsManager = require("./modules/objects/WorldObjectsManager");
+
 const app = express();
 
 app.use(express.static(__dirname + "/public"));

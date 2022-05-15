@@ -1,5 +1,32 @@
-<script src="socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
-  socket.emit("helloworld", "Hi!");
-</script>
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Hello world</title>
+    </head>
+
+    <body>
+
+    <canvas id="canvas"></canvas>
+
+    <script src="socket.io/socket.io.js"></script>
+    <script>
+
+    </script>
+
+    <script src="playerDraws.js"></script>
+    <script src="game.js"></script>
+    </body>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            background: cadetblue;
+        }
+    </style>
+</html>
+
