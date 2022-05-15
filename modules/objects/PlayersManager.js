@@ -8,7 +8,7 @@ class pm {
 
         this.players[player.id] = player;
 
-        return this.players[player.id];
+        return this.players[player.id]
     }
 }
 
