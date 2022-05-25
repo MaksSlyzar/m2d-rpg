@@ -2,16 +2,16 @@ class Game {
     networkInit = false;
     worldObjects = [];
     sprites = {};
+    entities = {};
 
     constructor(canvas, io) {
         this.canvas = canvas;
         this.context = canvas.getContext("2d");
+        this.camera = new Camera();
 
         this.players = {};
         this.ownPlayer = {};
         this.marker = new Marker();
-
-        this.ownPlayer = new Player();
 
         this.socket = io();
         this.socket.emit('init');
@@ -69,11 +69,11 @@ class Game {
     }
 
     init (data) {
+        console.log(data)
+        this.ownPlayer = new OwnPlayer(this.socket);
         this.networkInit = true;
-        this.ownPlayer = new OwnPlayer();
         this.ownPlayer.color = data.ownPlayer.color;
-
-        console.log(this.ownPlayer.color)
+        this.entities = data.entities;
 
         const values = Object.values(data.worldObjects);
 
@@ -90,7 +90,7 @@ class Game {
 
         this.marker.setPosition(new Point(clickX, clickY));
 
-        const collidingWorldObjects = this.worldObjects.filter(object => object.collision({ x: clickX, y: clickY, radius: 1 }));
+        const collidingWorldObjects = this.worldObjects.filter(object => object.collision({ x: clickX, y: clickY, collider: {x:0, y:0, radius:1} }));
 
         if (collidingWorldObjects.length > 0)
             this.ownPlayer.hitObject = collidingWorldObjects[0];
@@ -102,6 +102,7 @@ class Game {
         this.sprites['marker'] = new Sprite('marker', './images/marker.png', 150, 25, true, 25, 25);
         this.sprites['marker2'] = new Sprite('marker2', './images/marker2.png', 320, 40, true, 40, 40);
         this.sprites['man1_run'] = new Sprite('man_run', './images/man1.png', 320, 80, true, 80, 80);
+        this.sprites['default_axe'] = new Sprite('default_axe', './images/defaultAxe.png', 70, 30);
     }
 }
 
@@ -169,11 +170,32 @@ class Player {
     y = 0;
 }
 
+class Camera {
+    x = 0;
+    y = 0;
+}
+
+class Entity {
+    constructor(data) {
+        this.spriteType = data.spriteType;
+        this.x = data.x;
+        this.y = data.y;
+        this.width = data.width;
+        this.height = data.height;
+        this.id = data.id;
+    }
+}
+
 class OwnPlayer {
     x = 0;
     y = 0;
     width = 80;
     height = 80;
+    collider = {
+        radius: 30,
+        x: 10,
+        y: 10
+    };
     speed = 5;
     radius = this.width / 2;
     hitObject = null;
@@ -181,18 +203,31 @@ class OwnPlayer {
     hitting = false;
     hitCooldownMax = 1000;
     hitIntervalId = null;
+    playerAnimationController = null;
+    resources = { wood: 0, stone: 0 };
+    inventory = {
+        arms: 'defaultAxe'
+    };
 
-    constructor() {
+    constructor(socket) {
+        this.socket = socket;
+        this.playerAnimationController = new PlayerAnimationController(this);
+        WoodResourceView.innerHTML = this.resources.wood;
+
+        socket.on('updatePlayer', data => {
+            this.resources = data.resources;
+            WoodResourceView.innerHTML = this.resources.wood;
+        });
     }
 
-    draw (context, sprites) {
+    draw (context, sprites, playerAnimationController) {
         context.save();
         context.fillStyle = 'rgba(23, 80, 51, 0.2)';
         context.beginPath();
         context.arc(
-            this.x + this.radius,
-            this.y + this.radius,
-            this.radius,
+            this.x + this.collider.x + this.collider.radius,
+            this.y + this.collider.y + this.collider.radius,
+            this.collider.radius,
             0,
             Math.PI * 2
         );
@@ -200,8 +235,13 @@ class OwnPlayer {
         context.fill();
         context.restore();
 
-        playerDraws.stay(context, this, sprites);
+        this.playerAnimationController.draw(context, sprites);
 
+        //Draw health panel
+        context.fillStyle = 'lime';
+        context.fillRect(this.x, this.y - 16, this.width, 11);
+        context.strokeRect(this.x, this.y - 16, this.width, 11);
+        // playerDraws.stay(context, this, sprites);
         // context.save()
         //
         // context.translate(this.x + this.width / 2, this.y + this.height / 2);
@@ -218,17 +258,21 @@ class OwnPlayer {
     closeHit () {
         this.hitting = false;
         this.hitObject = null;
+        this.playerAnimationController.run('stayWithAxe');
         clearInterval(this.hitIntervalId);
     }
 
     hit () {
+        this.playerAnimationController.run("armhit");
         this.hitting = true;
         console.log('start hit')
-        this.hitIntervalId = setInterval(this.doHit, this.hitCooldownMax);
+        this.hitIntervalId = setInterval(() => this.doHit(), this.hitCooldownMax);
     }
 
     doHit () {
         console.log('dohit')
+        console.log(this.hitObject)
+        this.socket.emit('hitWorldObject', { hitWorldObjectId: this.hitObject.id });
     }
 
     moveTo (point) {
@@ -264,6 +308,7 @@ class WorldObject {
         this.width = data.width;
         this.height = data.height;
         this.radius = data.width / 2;
+        this.id = data.id;
     }
 
     draw (context, sprites) {
@@ -298,11 +343,15 @@ class WorldObject {
         //     // console.log('uncollision')
         // }
 
-        const dx = (this.x + this.radius) - (other.x + other.radius);
-        const dy = (this.y + this.radius) - (other.y + other.radius);
+        // console.log(other.collider)
+        const otherX = other.x + other.collider.x;
+        const otherY = other.y + other.collider.y;
+
+        const dx = (this.x + this.radius) - (otherX + other.collider.radius);
+        const dy = (this.y + this.radius) - (otherY + other.collider.radius);
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < this.radius + other.radius) {
+        if (distance < this.radius + other.collider.radius) {
             // collision detected!
             // console.log('collision')
             return true;

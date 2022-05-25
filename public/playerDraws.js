@@ -1,91 +1,101 @@
-const playerDraws = {
-    stay: (ctx, obj, sprites) => {
+class PlayerAnimationController {
+    animations = playerAnimations;
+    updateWhile = false;
+
+    constructor(player) {
+        this.player = player;
+        this.animation = 'default';
+        this.body = {
+            head: { ...new Point(0, 0), radius: 0 },
+            leftArm: { ...new Point(0, 0), radius: 0 },
+            rightArm: { ...new Point(0, 0), radius: 0 }
+        };
+
+        this.frame = 0;
+
+        this.run('stayWithAxe');
+    }
+
+    run (name) {
+        this.animation = name;
+        this.frame = 0;
+
+        if (this.updateWhile == false) {
+            this.updateWhile = true;
+            this.update();
+        }
+    }
+
+    update () {
+        this.body = this.animations[this.animation].screens[this.frame](this.player);
+
+        this.frame++;
+        if (this.frame >= this.animations[this.animation].screens.length) {
+            this.frame = 0;
+
+            // return;
+        }
+        setTimeout(() => this.update(), this.animations[this.animation].frameRate);
+    }
+
+    draw (ctx, sprites) {
+        if (!this.player)
+            return;
+
+        const obj = this.player;
+
+        const { head, leftarm, rightarm, arms } = this.body;
+
         ctx.fillStyle = obj.color;
-
-        const globalX = 0;
-        const globalY = 0;
-        const globalWidth = obj.width;
-        const globalHeight = obj.height;
-        const radius = obj.radius;
-
         ctx.save();
 
         ctx.translate(obj.x + obj.width / 2, obj.y + obj.height / 2);
 
         ctx.rotate(obj.rotateAngle);
+
+        if (arms) {
+            ctx.drawImage(sprites['default_axe'].image, arms.x, arms.y, arms.width, arms.height);
+        }
+
         //Head
         ctx.beginPath();
-        ctx.arc(globalX, globalY,  radius / 2, 0, 2 * Math.PI);
+        ctx.arc(head.x, head.y,  head.radius, 0, 2 * Math.PI);
         ctx.fill();
         ctx.stroke();
 
         //Left hand
         ctx.beginPath();
-        ctx.arc(globalX - (radius / 4) * 3, globalY - radius / 8,  radius / 4, 0, 2 * Math.PI);
+        ctx.arc(leftarm.x, leftarm.y, leftarm.radius, 0, 2 * Math.PI);
         ctx.fill();
         ctx.stroke();
 
         //Right hand
         ctx.beginPath();
-        ctx.arc(globalX + (radius / 4) * 3, globalY - radius / 8,  radius / 4, 0, 2 * Math.PI);
+        ctx.arc(rightarm.x, rightarm.y, rightarm.radius, 0, 2 * Math.PI);
+        ctx.fill();
         ctx.stroke();
 
-        ctx.fill();
+
         ctx.restore();
-    },
-    hit: (ctx, obj, sprites,) => {
-        let head = {x: 0, y: 0, radius: obj.radius / 2 };
-        let leftarm = { x: 0, y: 0, radius: obj.radius / 8 };
-        let rightarm = { x: 0, y: 0, radius: obj.radius / 8 };
-        const radius = obj.radius;
 
-        const animations = [() => {
-            leftarm = { x: (radius / 4) * 3, y: radius / 8};
-            rightarm = { x: (radius / 4) * 3, y: radius / 7 };
-        },
-        () => {
-            leftarm = { x: (radius / 4) * 3, y: radius / 7};
-            rightarm = { x: (radius / 4) * 3, y: radius / 8 };
-        }];
 
-        let frame = 0;
-        setInterval(() => {
-            animations[frame]();
-            frame++;
-            if (frame > 1)
-                frame = 0;
-        }, 500);
 
-        drawPlayerModules(obj, ctx, head, leftarm, rightarm);
+        // if (arms) {
+        //     if (arms.rotate != undefined) {
+        //         ctx.save();
+        //         ctx.translate(obj.x - arms.x, obj.y - arms.y);
+        //
+        //         ctx.rotate(obj.rotateAngle);
+        //     }
+        //
+        //     ctx.drawImage(sprites['default_axe'].image, arms.x, arms.y, arms.width, arms.height);
+        //
+        //     if (arms.rotate != undefined) {
+        //         ctx.restore();
+        //     }
+        // }
+
     }
-}
-
-function drawPlayerModules (obj, ctx, head, leftarm, rightarm) {
-    console.log('asd')
-    ctx.save();
-
-    ctx.translate(obj.x + obj.width / 2, obj.y + obj.height / 2);
-
-    ctx.rotate(obj.rotateAngle);
-    //Head
-    ctx.beginPath();
-    ctx.arc(head.x, head.y,  head.radius, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.stroke();
-
-    //Left hand
-    ctx.beginPath();
-    ctx.arc(leftarm.x, leftarm.y, leftarm.radius, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.stroke();
-
-    //Right hand
-    ctx.beginPath();
-    ctx.arc(rightarm.x, rightarm.y, rightarm.radius, 0, 2 * Math.PI);
-    ctx.stroke();
-
-    ctx.fill();
-    ctx.restore();
 }
 
 

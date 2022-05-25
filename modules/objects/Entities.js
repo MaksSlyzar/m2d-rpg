@@ -1,6 +1,6 @@
 
 
-class WorldObject {
+class EntityObject {
     x;
     y;
     id;
@@ -20,21 +20,27 @@ class WorldObject {
     }
 }
 
-class Wood extends WorldObject {
+class DefaultMob extends EntityObject {
     constructor() {
         super();
 
-        this.x = 200;
-        this.y = 200;
+        this.x = 500;
+        this.y = 500;
         this.width = 200;
         this.height = 200;
+        this.agrCamp = {
+            width: 200,
+            height: 200,
+            x: 500,
+            y: 500
+        };
         this.collider = {
             x: 0,
             y: 0,
             radius: 100
         };
 
-        this.spriteType = "wood";
+        this.spriteType = null;
 
         this.setEvent("onDamage", (data) => this.onDamage(data))
     }
@@ -46,5 +52,5 @@ class Wood extends WorldObject {
 }
 
 module.exports = {
-    Wood: Wood
+    DefaultMob: DefaultMob
 }
