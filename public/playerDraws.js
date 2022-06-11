@@ -47,6 +47,7 @@ class PlayerAnimationController {
         const { head, leftarm, rightarm, arms } = this.body;
 
         ctx.fillStyle = obj.color;
+
         ctx.save();
 
         ctx.translate(obj.x + obj.width / 2, obj.y + obj.height / 2);

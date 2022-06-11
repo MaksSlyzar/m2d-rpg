@@ -2,7 +2,7 @@ class Game {
     networkInit = false;
     worldObjects = [];
     sprites = {};
-    entities = {};
+    entities = [];
 
     constructor(canvas, io) {
         this.canvas = canvas;
@@ -29,6 +29,7 @@ class Game {
         if (this.networkInit) {
             this.moveObjects();
             this.worldObjects.map(object => object.draw(this.context, this.sprites));
+            this.entities.map(object => object.draw(this.context, this.sprites));
             this.ownPlayer.draw(this.context, this.sprites);
             this.marker.draw(this.context);
         }
@@ -45,11 +46,13 @@ class Game {
 
         // this.worldObjects.map(object => object.collision(this.ownPlayer));
 
-        for (let wo = 0; wo < this.worldObjects.length; wo++) {
-            if (this.worldObjects[wo].collision(this.ownPlayer)) {
+        const collideObjects = [...this.worldObjects.values(), ...this.entities.values()];
 
+        for (let wo = 0; wo < collideObjects.length; wo++) {
+            // console.log(collideObjects[wo].collision(this.ownPlayer));
+            if (collideObjects[wo].collision(this.ownPlayer)) {
                 if (this.ownPlayer.hitObject != null) {
-                    if (this.worldObjects[wo].id == this.ownPlayer.hitObject.id) {
+                    if (collideObjects[wo].id == this.ownPlayer.hitObject.id) {
                         if (this.ownPlayer.hitting == false)
                             this.ownPlayer.hit();
                     }
@@ -73,15 +76,24 @@ class Game {
         this.ownPlayer = new OwnPlayer(this.socket);
         this.networkInit = true;
         this.ownPlayer.color = data.ownPlayer.color;
-        this.entities = data.entities;
 
-        const values = Object.values(data.worldObjects);
+        let values = Object.values(data.worldObjects);
 
         for (let i = 0; i < values.length; i++) {
             this.worldObjects.push(new WorldObject(values[i]));
         }
 
+        values = Object.values(data.enteties);
+        // console.log(values)
+
+        for (let i = 0; i < values.length; i++) {
+            console.log(new Entity(values[i]));
+            this.entities.push(new Entity(values[i]));
+        }
+
         this.marker.init(this.context, this.sprites['marker2']);
+        this.ownPlayer.x = 100;
+        this.ownPlayer.y = 100;
     }
 
     click (event) {
@@ -183,6 +195,57 @@ class Entity {
         this.width = data.width;
         this.height = data.height;
         this.id = data.id;
+        this.collider = {
+            radius: 35,
+            x: 10,
+            y: 10
+        };
+    }
+
+    draw (context) {
+        context.save();
+        context.fillStyle = 'rgba(23, 80, 51, 0.2)';
+        context.beginPath();
+        context.arc(
+            this.x + this.collider.x + this.collider.radius,
+            this.y + this.collider.y + this.collider.radius,
+            this.collider.radius,
+            0,
+            Math.PI * 2
+        );
+        context.closePath();
+        context.fill();
+        context.restore();
+    }
+
+    collision (other) {
+        const coll = false;
+
+        // if (this.x < other.x + other.width && this.x + this.width > other.x &&
+        //     this.y < other.y + other.height && this.y + this.height > other.y) {
+        //     // collision detected!
+        //     // console.log('collision')
+        //     return true;
+        // } else {
+        //     // console.log('uncollision')
+        // }
+
+        // console.log(other.collider)
+        const otherX = other.x + other.collider.x;
+        const otherY = other.y + other.collider.y;
+
+        const dx = (this.x + this.radius) - (otherX + other.collider.radius);
+        const dy = (this.y + this.radius) - (otherY + other.collider.radius);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < this.radius + other.collider.radius) {
+            // collision detected!
+            // console.log('collision')
+            return true;
+        } else {
+            // no collision
+            // console.log('uncollision')
+        }
     }
 }
 
@@ -196,7 +259,7 @@ class OwnPlayer {
         x: 10,
         y: 10
     };
-    speed = 5;
+    speed = 3;
     radius = this.width / 2;
     hitObject = null;
     rotateAngle = 0.4;
@@ -359,7 +422,6 @@ class WorldObject {
             // no collision
             // console.log('uncollision')
         }
-
     }
 }
 
